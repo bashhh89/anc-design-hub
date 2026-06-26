@@ -290,6 +290,15 @@ export function MondayBoard({ board, boards, groups, statuses, users, isAdmin }:
   const router = useRouter();
   const [mgr, setMgr] = useState(false);
   const [bName, setBName] = useState(board.name);
+  const [addingBoard, setAddingBoard] = useState(false);
+  const [newBoard, setNewBoard] = useState("");
+
+  const createBoardNow = () => {
+    const n = newBoard.trim();
+    setAddingBoard(false);
+    setNewBoard("");
+    if (n) start(async () => { const id = await A.createBoard(n); router.push(`/board?b=${id}`); router.refresh(); });
+  };
 
   return (
     <div className="animate-fade-up">
@@ -302,8 +311,23 @@ export function MondayBoard({ board, boards, groups, statuses, users, isAdmin }:
             <span>{b.icon ?? "▦"}</span>{b.name}
           </Link>
         ))}
-        <button onClick={() => { const n = prompt("New board name"); if (n) start(async () => { const id = await A.createBoard(n); router.push(`/board?b=${id}`); router.refresh(); }); }}
-          className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-medium text-faint hover:bg-surface-2 hover:text-ink"><Plus size={15} /> Board</button>
+        {addingBoard ? (
+          <input
+            autoFocus
+            value={newBoard}
+            onChange={(e) => setNewBoard(e.target.value)}
+            onBlur={createBoardNow}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") createBoardNow();
+              if (e.key === "Escape") { setAddingBoard(false); setNewBoard(""); }
+            }}
+            placeholder="Board name…"
+            className="h-8 w-44 rounded-lg border border-hairline bg-surface-2 px-2.5 text-sm outline-none transition focus:border-accent focus:bg-surface focus:ring-2 focus:ring-accent-soft"
+          />
+        ) : (
+          <button onClick={() => setAddingBoard(true)}
+            className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-medium text-faint hover:bg-surface-2 hover:text-ink"><Plus size={15} /> Board</button>
+        )}
       </div>
 
       {/* board header */}
