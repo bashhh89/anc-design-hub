@@ -1,26 +1,20 @@
-// Boot guard: seed demo content only when the database is empty.
-// Protects real data from being wiped on redeploy.
+// Boot guard:
+//  - seed demo content only when the database is empty (protects real data)
+//  - guarantee the real ANC roster + admin roles on every boot (idempotent)
 import { PrismaClient } from "@prisma/client";
-import { seed } from "./seed";
+import { seed, ROSTER } from "./seed";
 
 const db = new PrismaClient();
 
-// Admins who may delete/archive (Daniel + Charlie). Upserted on every boot so an
-// already-seeded database picks up role changes without a manual migration.
-const ADMINS = [
-  { email: "daniel@leda.design", name: "Daniel Croci", color: "#5a4be0" },
-  { email: "charlie@ancsports.net", name: "Charlie Dinh", color: "#c9852b" },
-];
-
-async function ensureAdmins() {
-  for (const a of ADMINS) {
+async function ensureRoster() {
+  for (const r of ROSTER) {
     await db.user.upsert({
-      where: { email: a.email },
-      update: { role: "ADMIN" },
-      create: { email: a.email, name: a.name, color: a.color, role: "ADMIN" },
+      where: { email: r.email },
+      update: { name: r.name, role: r.role as any, color: r.color },
+      create: { email: r.email, name: r.name, role: r.role as any, color: r.color },
     });
   }
-  console.log("ensure-seed: admins guaranteed —", ADMINS.map((a) => a.name).join(", "));
+  console.log("ensure-seed: roster guaranteed —", ROSTER.length, "people");
 }
 
 async function main() {
@@ -31,11 +25,9 @@ async function main() {
   } else {
     console.log(`ensure-seed: ${users} users present — skipping demo seed.`);
   }
-  await ensureAdmins();
+  await ensureRoster();
 }
 
 main()
-  .catch((e) => {
-    console.error("ensure-seed failed (continuing to start anyway):", e);
-  })
+  .catch((e) => console.error("ensure-seed failed (continuing to start anyway):", e))
   .finally(() => db.$disconnect());
