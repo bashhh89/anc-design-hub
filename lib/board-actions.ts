@@ -149,6 +149,55 @@ export async function moveItem(itemId: string, groupId: string) {
   await db.project.update({ where: { id: itemId }, data: { groupId, order: (last?.order ?? 0) + 1 } });
   refresh();
 }
+
+// Persist a drag reorder: every item in `orderedIds` is set to that group at its index.
+// Handles both within-group reorder and moving an item into the group.
+export async function reorderItems(groupId: string, orderedIds: string[]) {
+  await db.$transaction(
+    orderedIds.map((id, i) =>
+      db.project.update({ where: { id }, data: { groupId, order: i } })
+    )
+  );
+  refresh();
+}
+
+export async function reorderGroups(orderedIds: string[]) {
+  await db.$transaction(
+    orderedIds.map((id, i) => db.group.update({ where: { id }, data: { order: i } }))
+  );
+  refresh();
+}
+
+// Read an item's updates (comments) for the slide-over panel.
+export async function getItemUpdates(itemId: string) {
+  const [item, comments] = await Promise.all([
+    db.project.findUnique({ where: { id: itemId }, select: { id: true, name: true } }),
+    db.comment.findMany({
+      where: { projectId: itemId },
+      orderBy: { createdAt: "desc" },
+      include: { author: true },
+    }),
+  ]);
+  if (!item) return null;
+  return {
+    id: item.id,
+    name: item.name,
+    comments: comments.map((c) => ({
+      id: c.id,
+      body: c.body,
+      createdAt: c.createdAt.toISOString(),
+      author: { name: c.author.name, color: c.author.color },
+    })),
+  };
+}
+
+export async function addUpdate(itemId: string, body: string) {
+  const user = await currentUser();
+  if (!user || !body.trim()) return;
+  await db.comment.create({ data: { projectId: itemId, authorId: user.id, body: body.trim() } });
+  await db.activity.create({ data: { projectId: itemId, userId: user.id, action: "posted an update" } });
+  refresh();
+}
 export async function deleteItem(id: string) {
   await requireAdmin();
   await db.project.update({ where: { id }, data: { deletedAt: new Date() } });
