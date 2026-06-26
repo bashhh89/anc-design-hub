@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Canvas — bone, not pure white. Calm operator console. */
+  --canvas: #f7f6f2;
+  --surface: #ffffff;
+  --surface-2: #fbfaf7;
+  --ink: #16161a;
+  --muted: #6c6c75;
+  --faint: #9b9ba3;
+  --hairline: #e9e7e0;
+
+  /* One confident accent — electric indigo. Used with restraint. */
+  --accent: #5a4be0;
+  --accent-hover: #4a3bcf;
+  --accent-soft: #eeebfd;
+  --accent-ink: #2c1f9c;
+
+  /* Category coding — the only color allowed to multiply, as thin chips/edges */
+  --cat-development: #2e7dd1;
+  --cat-design: #d24b8f;
+  --cat-engineering: #c9852b;
+  --cat-marketing: #2fa36b;
+  --cat-other: #7a7a82;
+}
+
+* {
+  border-color: var(--hairline);
+}
+
+html,
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+/* Quiet, premium scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d8d6cd;
+  border-radius: 8px;
+  border: 2px solid var(--canvas);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c4c2b8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Display face: tighten the optical spacing for the studio feel */
+.font-display {
+  letter-spacing: -0.02em;
+}
