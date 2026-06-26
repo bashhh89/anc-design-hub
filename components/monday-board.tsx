@@ -208,19 +208,21 @@ function ColorRow({ label, color, onLabel, onColor }: { label: string; color: st
 }
 
 /* ── sortable item row ──────────────────────────────── */
-function ItemRow({ item, group, statuses, users, onSetDate, onOpenUpdates }: {
-  item: Item; group: Group; statuses: Status[]; users: U[];
+function ItemRow({ item, group, statuses, users, isAdmin, onSetDate, onOpenUpdates, onDelete }: {
+  item: Item; group: Group; statuses: Status[]; users: U[]; isAdmin: boolean;
   onSetDate: (item: Item, f: "dueDate" | "startDate" | "endDate", v: string | null) => void;
   onOpenUpdates: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id, data: { type: "item", groupId: group.id },
   });
+  const [confirm, setConfirm] = useState(false);
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition, boxShadow: `inset 4px 0 0 ${group.color}` }}
-      className={cn(ROW, "items-center border-b border-hairline last:border-0 hover:bg-surface-2/50", isDragging && "z-10 bg-surface opacity-80 shadow-lift")}
+      className={cn("group/row relative", ROW, "items-center border-b border-hairline last:border-0 hover:bg-surface-2/50", isDragging && "z-10 bg-surface opacity-80 shadow-lift")}
     >
       <button {...attributes} {...listeners} className="flex h-full cursor-grab items-center justify-center text-faint hover:text-muted active:cursor-grabbing" title="Drag to reorder">
         <GripVertical size={14} />
@@ -236,13 +238,26 @@ function ItemRow({ item, group, statuses, users, onSetDate, onOpenUpdates }: {
       <div className="px-2 py-1.5"><DateCell value={item.dueDate} onSet={(v) => onSetDate(item, "dueDate", v)} /></div>
       <Link href={`/projects/${item.id}`} className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-muted hover:text-accent"><Paperclip size={13} />{item.fileCount}</Link>
       <button onClick={() => onOpenUpdates(item.id)} className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-muted hover:text-accent" title="Open updates"><MessageSquare size={13} />{item.commentCount}</button>
+      {isAdmin && (
+        <button
+          onClick={() => { if (!confirm) { setConfirm(true); setTimeout(() => setConfirm(false), 2500); return; } onDelete(item.id); }}
+          className={cn(
+            "absolute right-1.5 top-1/2 grid h-6 -translate-y-1/2 place-items-center rounded-md text-xs font-medium transition",
+            confirm ? "w-auto px-2 bg-[#fbe9f2] text-[#9a2c63]" : "w-6 text-faint opacity-0 group-hover/row:opacity-100 hover:bg-[#fbe9f2] hover:text-[#9a2c63]"
+          )}
+          title="Delete item (admin)"
+        >
+          {confirm ? "Delete?" : <Trash2 size={13} />}
+        </button>
+      )}
     </div>
   );
 }
 
 /* ── sortable group ─────────────────────────────────── */
-function GroupSection({ group, board, statuses, users, isAdmin, onOpenUpdates }: {
-  group: Group; board: Board; statuses: Status[]; users: U[]; isAdmin: boolean; onOpenUpdates: (id: string) => void;
+function GroupSection({ group, board, statuses, users, isAdmin, onOpenUpdates, onDelete }: {
+  group: Group; board: Board; statuses: Status[]; users: U[]; isAdmin: boolean;
+  onOpenUpdates: (id: string) => void; onDelete: (id: string) => void;
 }) {
   const [, start] = useTransition();
   const router = useRouter();
@@ -297,7 +312,7 @@ function GroupSection({ group, board, statuses, users, isAdmin, onOpenUpdates }:
           </div>
           <SortableContext items={group.items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
             {group.items.map((item) => (
-              <ItemRow key={item.id} item={item} group={group} statuses={statuses} users={users} onSetDate={setDate} onOpenUpdates={onOpenUpdates} />
+              <ItemRow key={item.id} item={item} group={group} statuses={statuses} users={users} isAdmin={isAdmin} onSetDate={setDate} onOpenUpdates={onOpenUpdates} onDelete={onDelete} />
             ))}
           </SortableContext>
           <div className="px-3 py-1.5" style={{ boxShadow: `inset 4px 0 0 ${group.color}` }}>
@@ -343,6 +358,12 @@ export function MondayBoard({ board, boards, groups, statuses, users, isAdmin }:
   };
 
   const findGroupOfItem = (itemId: string) => cols.find((g) => g.items.some((i) => i.id === itemId));
+
+  const deleteItem = (itemId: string) => {
+    setCols((prev) => prev.map((g) => ({ ...g, items: g.items.filter((i) => i.id !== itemId) })));
+    A.deleteItem(itemId);
+    if (openItem === itemId) setOpenItem(null);
+  };
 
   function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
@@ -425,7 +446,7 @@ export function MondayBoard({ board, boards, groups, statuses, users, isAdmin }:
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={cols.map((g) => "g:" + g.id)} strategy={verticalListSortingStrategy}>
           {cols.map((g) => (
-            <GroupSection key={g.id} group={g} board={board} statuses={statuses} users={users} isAdmin={isAdmin} onOpenUpdates={setOpenItem} />
+            <GroupSection key={g.id} group={g} board={board} statuses={statuses} users={users} isAdmin={isAdmin} onOpenUpdates={setOpenItem} onDelete={deleteItem} />
           ))}
         </SortableContext>
       </DndContext>

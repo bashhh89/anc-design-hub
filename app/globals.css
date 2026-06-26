@@ -12,11 +12,11 @@
   --faint: #9b9ba3;
   --hairline: #e9e7e0;
 
-  /* One confident accent — electric indigo. Used with restraint. */
-  --accent: #5a4be0;
-  --accent-hover: #4a3bcf;
-  --accent-soft: #eeebfd;
-  --accent-ink: #2c1f9c;
+  /* ANC brand blue — the one confident accent, used with restraint. */
+  --accent: #0a52ef;
+  --accent-hover: #0843c9;
+  --accent-soft: #e7effe;
+  --accent-ink: #08379c;
 
   /* Category coding — the only color allowed to multiply, as thin chips/edges */
   --cat-development: #2e7dd1;

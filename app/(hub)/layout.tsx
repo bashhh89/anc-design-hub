@@ -15,14 +15,13 @@ export default async function HubLayout({
     <div className="flex min-h-screen">
       {/* Rail */}
       <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-hairline bg-surface">
-        <Link href="/" className="flex items-center gap-2.5 px-5 py-5">
-          <span className="grid h-8 w-8 place-items-center rounded-[10px] bg-ink text-surface">
-            <span className="font-display text-sm font-bold tracking-tight">A</span>
-          </span>
-          <span className="font-display text-[15px] font-semibold leading-tight tracking-tight">
+        <Link href="/" className="flex items-center gap-3 px-5 py-5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/anc-blue.png" alt="ANC" className="h-[22px] w-auto" />
+          <span className="border-l border-hairline pl-3 font-display text-[14px] font-semibold leading-tight tracking-tight">
             Design&nbsp;Hub
             <span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-faint">
-              ANC Sales-support
+              Sales-support
             </span>
           </span>
         </Link>
