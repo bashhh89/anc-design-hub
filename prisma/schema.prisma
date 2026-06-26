@@ -56,6 +56,7 @@ model User {
 
   ledProjects   Project[]    @relation("TeamLead")
   createdProjects Project[]  @relation("Creator")
+  assignedItems Project[]    @relation("Assignees")
   comments      Comment[]
   revisions     Revision[]
   activity      Activity[]
@@ -63,24 +64,79 @@ model User {
   voiceNotes    VoiceNote[]
 }
 
+// A board is a flexible workspace Daniel creates and categorizes.
+model Board {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#5a4be0")
+  icon      String?
+  order     Int      @default(0)
+  groups    Group[]
+  items     Project[]
+  statuses  StatusOption[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([deletedAt])
+}
+
+// A group is a colored section inside a board (Monday-style).
+model Group {
+  id      String  @id @default(cuid())
+  board   Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId String
+  name    String
+  color   String  @default("#5a4be0")
+  order   Int     @default(0)
+  collapsed Boolean @default(false)
+  items   Project[]
+
+  @@index([boardId])
+}
+
+// Editable status label + color, scoped to a board (New / Working / Review / Stuck / Done…).
+model StatusOption {
+  id      String  @id @default(cuid())
+  board   Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId String
+  label   String
+  color   String
+  order   Int     @default(0)
+  items   Project[]
+
+  @@index([boardId])
+}
+
 model Project {
   id          String      @id @default(cuid())
   name        String
   category    Category    @default(EXTERNAL)
   type        ProjectType @default(DESIGN)
-  status      Status      @default(REQUEST)
+  status      Status      @default(REQUEST) // legacy enum — kept in sync with statusOption during transition
   priority    Priority    @default(MEDIUM)
   description String?     @db.Text
   notes       String?     @db.Text
-  dueDate     DateTime?
+  dueDate     DateTime?   // "Date" column
+  startDate   DateTime?   // "Timeline" column start
+  endDate     DateTime?   // "Timeline" column end
   order       Int         @default(0)
 
   // CRM linkage — the brief can originate from a Twenty Opportunity
   crmOpportunityId   String?
   crmOpportunityName String?
 
+  // Board / group / dynamic status (Monday-style)
+  board          Board?        @relation(fields: [boardId], references: [id])
+  boardId        String?
+  group          Group?        @relation(fields: [groupId], references: [id])
+  groupId        String?
+  statusOption   StatusOption? @relation(fields: [statusOptionId], references: [id])
+  statusOptionId String?
+
   teamLead    User?   @relation("TeamLead", fields: [teamLeadId], references: [id])
   teamLeadId  String?
+  assignees   User[]  @relation("Assignees")
   createdBy   User    @relation("Creator", fields: [createdById], references: [id])
   createdById String
 
@@ -97,6 +153,8 @@ model Project {
 
   @@index([status])
   @@index([deletedAt])
+  @@index([boardId])
+  @@index([groupId])
 }
 
 // Forced structured intake — Sales must fill this before a request becomes work.

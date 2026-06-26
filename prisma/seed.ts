@@ -117,15 +117,65 @@ export async function seed() {
     },
   ];
 
+  // Default board + Monday-style columns (statuses, groups)
+  const board = await db.board.create({
+    data: { name: "Sales-support Design", color: "#5a4be0", icon: "🎨", order: 0 },
+  });
+  const STATUS_DEFS = [
+    { key: "New", color: "#9b9ba3" },
+    { key: "Working", color: "#e0794b" },
+    { key: "Review", color: "#c9852b" },
+    { key: "Stuck", color: "#d24b8f" },
+    { key: "Done", color: "#2fa36b" },
+  ];
+  const statusByLabel: Record<string, string> = {};
+  let so = 0;
+  for (const s of STATUS_DEFS) {
+    const opt = await db.statusOption.create({
+      data: { boardId: board.id, label: s.key, color: s.color, order: so++ },
+    });
+    statusByLabel[s.key] = opt.id;
+  }
+  const enumToStatus: Record<string, string> = {
+    REQUEST: "New", BRIEF: "Working", IN_PROGRESS: "Working",
+    REVIEW: "Review", REVISIONS: "Stuck", APPROVED: "Done", DELIVERED: "Done",
+  };
+
+  const GROUP_DEFS = [
+    { key: "external", name: "External pitches", color: "#2e7dd1" },
+    { key: "internal", name: "Internal", color: "#7a5af0" },
+    { key: "done", name: "Delivered", color: "#2fa36b" },
+  ];
+  const groupByKey: Record<string, string> = {};
+  let go = 0;
+  for (const g of GROUP_DEFS) {
+    const grp = await db.group.create({
+      data: { boardId: board.id, name: g.name, color: g.color, order: go++ },
+    });
+    groupByKey[g.key] = grp.id;
+  }
+  const groupFor = (s: Seed) =>
+    s.status === "DELIVERED" || s.status === "APPROVED"
+      ? "done"
+      : s.category === "INTERNAL"
+      ? "internal"
+      : "external";
+
   let order = 0;
   for (const s of seeds) {
     const due = new Date();
     due.setDate(due.getDate() + s.days);
+    const start = new Date();
+    start.setDate(start.getDate() - 3);
     const proj = await db.project.create({
       data: {
         name: s.name, type: s.type, category: s.category, status: s.status, priority: s.priority,
-        description: s.description, dueDate: due, order: order++,
+        description: s.description, dueDate: due, startDate: start, endDate: due, order: order++,
         crmOpportunityName: s.crm ?? null, teamLeadId: id(s.lead), createdById: id(s.by),
+        boardId: board.id,
+        groupId: groupByKey[groupFor(s)],
+        statusOptionId: statusByLabel[enumToStatus[s.status]],
+        assignees: { connect: [{ id: id(s.lead) }] },
         ...(s.deliverables && {
           brief: { create: { deliverables: s.deliverables, submittedBy: "Sales", deadline: due } },
         }),
