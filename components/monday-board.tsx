@@ -265,6 +265,7 @@ function GroupSection({ group, board, statuses, users, isAdmin, onOpenUpdates, o
   const [pick, setPick] = useState(false);
   const [adding, setAdding] = useState(false);
   const [newItem, setNewItem] = useState("");
+  const [confirmDel, setConfirmDel] = useState(false);
   const collapsed = group.collapsed;
   useEffect(() => setName(group.name), [group.name]);
 
@@ -291,8 +292,16 @@ function GroupSection({ group, board, statuses, users, isAdmin, onOpenUpdates, o
           style={{ color: group.color }} />
         <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-muted">{group.items.length}</span>
         {isAdmin && (
-          <button onClick={() => start(async () => { await A.deleteGroup(group.id); router.refresh(); })} className="ml-1 text-faint opacity-0 transition hover:text-[#9a2c63] group-hover/sec:opacity-100" title="Delete group">
-            <Trash2 size={13} />
+          <button
+            onClick={() => {
+              if (!confirmDel) { setConfirmDel(true); setTimeout(() => setConfirmDel(false), 3000); return; }
+              start(async () => { await A.deleteGroup(group.id); router.refresh(); });
+            }}
+            className={cn("ml-1 transition", confirmDel
+              ? "rounded-md bg-[#fbe9f2] px-2 py-0.5 text-[11px] font-medium text-[#9a2c63]"
+              : "text-faint opacity-0 hover:text-[#9a2c63] group-hover/sec:opacity-100")}
+            title="Delete group">
+            {confirmDel ? "Delete group?" : <Trash2 size={13} />}
           </button>
         )}
       </div>

@@ -74,6 +74,24 @@ export async function toggleGroupCollapse(id: string, collapsed: boolean) {
 }
 export async function deleteGroup(id: string) {
   await requireAdmin();
+  const grp = await db.group.findUnique({
+    where: { id },
+    include: { items: { where: { deletedAt: null }, orderBy: { order: "asc" } } },
+  });
+  if (!grp) return;
+  // Never let a delete silently lose items — move them to another group first.
+  if (grp.items.length > 0) {
+    const other = await db.group.findFirst({
+      where: { boardId: grp.boardId, id: { not: id } },
+      orderBy: { order: "asc" },
+    });
+    if (!other) throw new Error("Can't delete the only group while it has items — move them first.");
+    const last = await db.project.findFirst({ where: { groupId: other.id }, orderBy: { order: "desc" } });
+    const base = (last?.order ?? 0) + 1;
+    await db.$transaction(
+      grp.items.map((it, i) => db.project.update({ where: { id: it.id }, data: { groupId: other.id, order: base + i } }))
+    );
+  }
   await db.group.delete({ where: { id } });
   refresh();
 }
