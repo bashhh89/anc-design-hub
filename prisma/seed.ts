@@ -16,6 +16,9 @@ export async function seed() {
   const daniel = await db.user.create({
     data: { name: "Daniel Croci", email: "daniel@leda.design", role: "ADMIN", color: "#5a4be0" },
   });
+  await db.user.create({
+    data: { name: "Charlie Dinh", email: "charlie@ancsports.net", role: "ADMIN", color: "#c9852b" },
+  });
   const natalia = await db.user.create({
     data: { name: "Natalia Kovaleva", email: "natalia@ancsports.net", role: "SALES", color: "#d24b8f" },
   });

@@ -9,8 +9,10 @@ import {
   CalendarClock,
   FileText,
   ExternalLink,
+  Lock,
 } from "lucide-react";
 import { getProject } from "@/lib/queries";
+import { currentUser, isAdmin } from "@/lib/auth";
 import { StatusPill, PriorityPill, TypeChip, Avatar } from "@/components/pills";
 import { CATEGORY_META, TYPE_META } from "@/lib/design";
 import {
@@ -24,8 +26,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function ProjectPage({ params }: { params: { id: string } }) {
-  const p = await getProject(params.id);
+  const [p, me] = await Promise.all([getProject(params.id), currentUser()]);
   if (!p) notFound();
+  const canDelete = isAdmin(me);
 
   return (
     <div className="mx-auto max-w-5xl animate-fade-up">
@@ -70,7 +73,13 @@ export default async function ProjectPage({ params }: { params: { id: string } }
               Due <span className="font-medium text-ink">{format(new Date(p.dueDate), "MMM d, yyyy")}</span>
             </span>
           )}
-          <span className="ml-auto"><ArchiveButton id={p.id} /></span>
+          {canDelete ? (
+            <span className="ml-auto"><ArchiveButton id={p.id} /></span>
+          ) : (
+            <span className="ml-auto inline-flex items-center gap-1.5 text-xs text-faint">
+              <Lock size={12} /> Admins only
+            </span>
+          )}
         </div>
       </div>
 

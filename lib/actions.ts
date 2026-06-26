@@ -1,9 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { db } from "./db";
 import { currentUser } from "./auth";
 import type { Category, ProjectType, Status, Priority } from "@prisma/client";
+
+export async function setViewAs(userId: string) {
+  cookies().set("dh_user", userId, { path: "/", maxAge: 60 * 60 * 24 * 365 });
+  revalidatePath("/", "layout");
+}
 
 async function log(projectId: string | null, action: string, detail?: string) {
   const user = await currentUser();
@@ -121,12 +127,22 @@ export async function addAttachment(projectId: string, name: string, url: string
 }
 
 export async function softDeleteProject(projectId: string) {
+  // Delete is admin-only (Daniel + Charlie). Enforced server-side, not just hidden
+  // in the UI — a non-admin hitting this action directly is still refused.
+  const user = await currentUser();
+  if (!user || user.role !== "ADMIN") {
+    throw new Error("Only admins can archive projects.");
+  }
   await db.project.update({ where: { id: projectId }, data: { deletedAt: new Date() } });
   await log(projectId, "archived the project (soft-delete)");
   revalidatePath("/", "layout");
 }
 
 export async function restoreProject(projectId: string) {
+  const user = await currentUser();
+  if (!user || user.role !== "ADMIN") {
+    throw new Error("Only admins can restore projects.");
+  }
   await db.project.update({ where: { id: projectId }, data: { deletedAt: null } });
   await log(projectId, "restored the project");
   revalidatePath("/", "layout");

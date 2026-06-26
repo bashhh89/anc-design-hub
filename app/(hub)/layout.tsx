@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { Nav } from "@/components/nav";
 import { SearchBox } from "@/components/search-box";
-import { Avatar } from "@/components/pills";
 import { NewProjectButton } from "@/components/new-project";
-import { currentUser } from "@/lib/auth";
+import { UserSwitcher } from "@/components/user-switcher";
+import { currentUser, listUsers } from "@/lib/auth";
 
 export default async function HubLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await currentUser();
+  const [user, users] = await Promise.all([currentUser(), listUsers()]);
   return (
     <div className="flex min-h-screen">
       {/* Rail */}
@@ -31,17 +31,7 @@ export default async function HubLayout({
           <Nav />
         </div>
 
-        {user && (
-          <div className="flex items-center gap-2.5 border-t border-hairline px-4 py-3.5">
-            <Avatar name={user.name} color={user.color} size={30} />
-            <div className="min-w-0">
-              <div className="truncate text-sm font-medium">{user.name}</div>
-              <div className="truncate text-xs capitalize text-faint">
-                {user.role.toLowerCase()}
-              </div>
-            </div>
-          </div>
-        )}
+        {user && <UserSwitcher users={users} currentId={user.id} />}
       </aside>
 
       {/* Main */}
