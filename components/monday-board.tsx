@@ -236,9 +236,10 @@ function GroupSection({ group, board, statuses, users, isAdmin }: { group: Group
       </div>
 
       {!collapsed && (
-        <div className="overflow-hidden rounded-xl border border-hairline bg-surface shadow-card">
+        <div className="overflow-x-auto rounded-xl border border-hairline bg-surface shadow-card">
+         <div className="min-w-[860px]">
           {/* header */}
-          <div className="grid grid-cols-[1.6fr_120px_140px_130px_120px_70px_70px] items-center border-b border-hairline bg-surface-2 text-[11px] font-semibold uppercase tracking-wide text-faint" style={{ boxShadow: `inset 4px 0 0 ${group.color}` }}>
+          <div className="grid grid-cols-[minmax(240px,1.6fr)_120px_150px_160px_120px_72px_74px] items-center border-b border-hairline bg-surface-2 text-[11px] font-semibold uppercase tracking-wide text-faint" style={{ boxShadow: `inset 4px 0 0 ${group.color}` }}>
             <div className="px-3 py-2">Item</div>
             <div className="px-2 py-2 text-center">People</div>
             <div className="px-2 py-2 text-center">Status</div>
@@ -249,7 +250,7 @@ function GroupSection({ group, board, statuses, users, isAdmin }: { group: Group
           </div>
           {/* rows */}
           {group.items.map((item) => (
-            <div key={item.id} className="grid grid-cols-[1.6fr_120px_140px_130px_120px_70px_70px] items-center border-b border-hairline last:border-0 hover:bg-surface-2/50" style={{ boxShadow: `inset 4px 0 0 ${group.color}` }}>
+            <div key={item.id} className="grid grid-cols-[minmax(240px,1.6fr)_120px_150px_160px_120px_72px_74px] items-center border-b border-hairline last:border-0 hover:bg-surface-2/50" style={{ boxShadow: `inset 4px 0 0 ${group.color}` }}>
               <div className="px-3 py-1.5"><NameCell item={item} /></div>
               <div className="px-2 py-1.5"><PeopleCell item={item} users={users} /></div>
               <div className="px-2 py-1.5"><StatusCell item={item} statuses={statuses} /></div>
@@ -274,6 +275,7 @@ function GroupSection({ group, board, statuses, users, isAdmin }: { group: Group
               <button onClick={() => setAdding(true)} className="flex items-center gap-1.5 text-sm text-faint hover:text-accent"><Plus size={15} /> Add item</button>
             )}
           </div>
+         </div>
         </div>
       )}
     </div>
