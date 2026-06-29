@@ -31,14 +31,6 @@ export async function seed() {
     u[r.email] = { id: created.id, name: created.name };
   }
   const id = (email: string) => u[email].id;
-  const daniel = "daniel@leda.design";
-  const alex = "alex.gomez@ancsports.net";
-  const jireh = "jireh.billings@ancsports.net";
-  const jeremy = "jeremy.riley@ancsports.net";
-  const matt = "matt.hobbs@ancsports.net";
-  const eric = "eric.gruner@ancsports.net";
-  const jack = "jack.mccrossing@ancsports.net";
-  const natalia = "natalia.kovaleva@ancsports.net";
 
   type Seed = {
     name: string; type: any; category: any; status: any; priority: any;
@@ -48,74 +40,10 @@ export async function seed() {
     revisions?: { label: string; note: string }[];
   };
 
-  const seeds: Seed[] = [
-    {
-      name: "Rams SoFi concourse LED renders",
-      type: "DESIGN", category: "EXTERNAL", status: "IN_PROGRESS", priority: "URGENT",
-      lead: alex, by: natalia, days: 4, crm: "LA Rams — Concourse Refresh 2026",
-      description: "Photoreal renders of the ribbon + concourse LED package for the Rams pitch. Day and gameday lighting states.",
-      deliverables: "6 hero renders (3 day / 3 gameday), 1 fly-through still set, sized for deck + large-format print.",
-      comments: [
-        { who: natalia, body: "Client wants the gameday shots to feel loud — crowd, color, motion blur ok." },
-        { who: alex, body: "First gameday angle is rendering overnight, review tomorrow AM." },
-      ],
-      revisions: [{ label: "Rev A — angle change", note: "Sales asked to drop the camera to seat level on hero 2." }],
-    },
-    {
-      name: "Dodgers premium club signage pitch",
-      type: "DESIGN", category: "EXTERNAL", status: "REVIEW", priority: "HIGH",
-      lead: jireh, by: jeremy, days: 2, crm: "LA Dodgers — Premium Club",
-      description: "Environmental signage + wayfinding concept boards for the premium club proposal.",
-      deliverables: "3 concept boards, 2 material call-out sheets.",
-      comments: [{ who: jeremy, body: "Need this for the Thursday walkthrough." }],
-    },
-    {
-      name: "ANC capabilities deck — 2026 refresh",
-      type: "MARKETING", category: "INTERNAL", status: "REVISIONS", priority: "MEDIUM",
-      lead: daniel, by: natalia, days: 9,
-      description: "Refresh the master capabilities deck used across Sales. New case studies + updated brand.",
-      deliverables: "28-slide master deck, editable source, PDF export.",
-      revisions: [
-        { label: "Rev A", note: "Swap the old Chase Center photo for the new night shot." },
-        { label: "Rev B", note: "Leadership wants the LiveSync section moved up front." },
-      ],
-    },
-    {
-      name: "Knicks MSG ribbon concept",
-      type: "ENGINEERING", category: "EXTERNAL", status: "BRIEF", priority: "HIGH",
-      lead: eric, by: jeremy, days: 12, crm: "NY Knicks — MSG Ribbon",
-      description: "Technical concept + render for a wraparound ribbon proposal.",
-      deliverables: "1 technical layout, 2 renders, pixel-pitch call-outs.",
-    },
-    {
-      name: "Sounders matchday social pack",
-      type: "MARKETING", category: "EXTERNAL", status: "APPROVED", priority: "LOW",
-      lead: matt, by: natalia, days: 1, crm: "Seattle Sounders",
-      description: "Matchday graphics template pack for the partnership pitch.",
-      deliverables: "Story + feed templates, 4 layouts.",
-    },
-    {
-      name: "Heat arena fascia mockup",
-      type: "DESIGN", category: "EXTERNAL", status: "REQUEST", priority: "MEDIUM",
-      lead: jack, by: jeremy, days: 15, crm: "Miami Heat — Arena Fascia",
-      description: "Sales flagged renders needed. Awaiting brief details before scoping.",
-    },
-    {
-      name: "Innovation lab brand system",
-      type: "DEVELOPMENT", category: "INTERNAL", status: "IN_PROGRESS", priority: "MEDIUM",
-      lead: daniel, by: daniel, days: 20,
-      description: "Visual system + component kit for the internal Innovation lab microsite.",
-      deliverables: "Logo lockups, color + type system, 12 UI components.",
-    },
-    {
-      name: "Chiefs suite-level proposal renders",
-      type: "DESIGN", category: "EXTERNAL", status: "DELIVERED", priority: "HIGH",
-      lead: jeremy, by: natalia, days: -3, crm: "KC Chiefs — Suites",
-      description: "Delivered render set for the suite-level display proposal.",
-      deliverables: "4 renders delivered + source files.",
-      comments: [{ who: natalia, body: "Client loved these. Closed the meeting strong — thank you." }],
-    },
-  ];
+  // No demo/sample projects. Real projects are created by users in the Hub UI or
+  // arrive from the CRM via /api/intake/crm. This seed only establishes the team
+  // and board structure — it never injects placeholder projects.
+  const seeds: Seed[] = [];
 
   // Default board + Monday-style columns (statuses, groups)
   const board = await db.board.create({
