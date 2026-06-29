@@ -37,7 +37,11 @@ type Item = {
 type Group = { id: string; name: string; color: string; collapsed: boolean; items: Item[] };
 type Board = { id: string; name: string; color: string; icon: string | null };
 
-const ROW = "grid grid-cols-[26px_minmax(220px,1.6fr)_120px_150px_160px_120px_72px_74px]";
+// TIMELINE holds two native date pickers (start–end) and DATE holds one; native
+// <input type="date"> has a hard min width (~130px incl. mm/dd/yyyy + spinners +
+// calendar icon), so these columns must be wide enough or the pickers overlap and
+// the dates render garbled. TIMELINE=300, DATE=148 give each picker room.
+const ROW = "grid grid-cols-[26px_minmax(200px,1.3fr)_100px_132px_300px_148px_60px_60px]";
 
 /* ── small primitives ───────────────────────────────── */
 function useDismiss(onClose: () => void) {
@@ -313,7 +317,7 @@ function GroupSection({ group, board, statuses, users, isAdmin, onOpenUpdates, o
 
       {!collapsed && (
         <div className="overflow-x-auto rounded-xl border border-hairline bg-surface shadow-card">
-         <div className="min-w-[880px]">
+         <div className="min-w-[1040px]">
           <div className={cn(ROW, "items-center border-b border-hairline bg-surface-2 text-[11px] font-semibold uppercase tracking-wide text-faint")} style={{ boxShadow: `inset 4px 0 0 ${group.color}` }}>
             <div />
             <div className="px-1 py-2">Item</div>
