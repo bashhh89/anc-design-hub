@@ -23,6 +23,7 @@ const itemInclude = {
   statusOption: true,
   teamLead: true,
   assignees: { orderBy: { name: "asc" } },
+  subItems: { orderBy: { order: "asc" }, select: { id: true, name: true, done: true } },
   _count: { select: { comments: true, attachments: true } },
 } as const;
 

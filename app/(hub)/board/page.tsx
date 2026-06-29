@@ -37,6 +37,7 @@ export default async function BoardPage({ searchParams }: { searchParams: { b?: 
       assignees: it.assignees.map((a) => ({ id: a.id, name: a.name, color: a.color })),
       commentCount: it._count.comments,
       fileCount: it._count.attachments,
+      subItems: it.subItems.map((s) => ({ id: s.id, name: s.name, done: s.done })),
     })),
   }));
 

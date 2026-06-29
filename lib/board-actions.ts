@@ -222,3 +222,24 @@ export async function deleteItem(id: string) {
   await log(id, "archived an item");
   refresh();
 }
+
+/* ── Sub-items (nested checklist under an item) ─────── */
+export async function addSubItem(projectId: string, name: string) {
+  if (!name.trim()) return;
+  const last = await db.subItem.findFirst({ where: { projectId }, orderBy: { order: "desc" } });
+  await db.subItem.create({ data: { projectId, name: name.trim(), order: (last?.order ?? 0) + 1 } });
+  await log(projectId, "added a sub-item", name.trim());
+  refresh();
+}
+export async function toggleSubItem(id: string, done: boolean) {
+  await db.subItem.update({ where: { id }, data: { done } });
+  refresh();
+}
+export async function renameSubItem(id: string, name: string) {
+  await db.subItem.update({ where: { id }, data: { name: name.trim() || "Untitled" } });
+  refresh();
+}
+export async function deleteSubItem(id: string) {
+  await db.subItem.delete({ where: { id } });
+  refresh();
+}

@@ -146,6 +146,7 @@ model Project {
   revisions   Revision[]
   activity    Activity[]
   voiceNotes  VoiceNote[]
+  subItems    SubItem[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -155,6 +156,20 @@ model Project {
   @@index([deletedAt])
   @@index([boardId])
   @@index([groupId])
+}
+
+// Sub-items — lightweight checklist nested under a board item (e.g. things to do
+// within an account like "Point Design"). Daniel's request, 2026-06-29.
+model SubItem {
+  id        String   @id @default(cuid())
+  name      String
+  done      Boolean  @default(false)
+  order     Int      @default(0)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
 }
 
 // Forced structured intake — Sales must fill this before a request becomes work.

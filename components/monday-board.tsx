@@ -33,6 +33,7 @@ type Item = {
   dueDate: string | null; startDate: string | null; endDate: string | null;
   assignees: { id: string; name: string; color: string }[];
   commentCount: number; fileCount: number;
+  subItems: { id: string; name: string; done: boolean }[];
 };
 type Group = { id: string; name: string; color: string; collapsed: boolean; items: Item[] };
 type Board = { id: string; name: string; color: string; icon: string | null };
@@ -227,16 +228,32 @@ function ItemRow({ item, group, statuses, users, isAdmin, onSetDate, onOpenUpdat
     id: item.id, data: { type: "item", groupId: group.id },
   });
   const [confirm, setConfirm] = useState(false);
+  const [open, setOpen] = useState(false);
+  const done = item.subItems.filter((s) => s.done).length;
   return (
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition, boxShadow: `inset 4px 0 0 ${group.color}` }}
-      className={cn("group/row relative", ROW, "items-center border-b border-hairline last:border-0 hover:bg-surface-2/50", isDragging && "z-10 bg-surface opacity-80 shadow-lift")}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn("relative", isDragging && "z-10 opacity-80 shadow-lift")}
+    >
+    <div
+      style={{ boxShadow: `inset 4px 0 0 ${group.color}` }}
+      className={cn("group/row relative", ROW, "items-center border-b border-hairline hover:bg-surface-2/50", isDragging && "bg-surface")}
     >
       <button {...attributes} {...listeners} className="flex h-full cursor-grab items-center justify-center text-faint hover:text-muted active:cursor-grabbing" title="Drag to reorder">
         <GripVertical size={14} />
       </button>
-      <div className="px-1 py-1.5"><NameCell item={item} /></div>
+      <div className="flex items-center gap-1 px-1 py-1.5">
+        <button onClick={() => setOpen((o) => !o)} className="grid h-4 w-4 shrink-0 place-items-center rounded text-faint hover:bg-surface-2 hover:text-muted" title="Sub-items">
+          {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+        </button>
+        <div className="min-w-0 flex-1"><NameCell item={item} /></div>
+        {item.subItems.length > 0 && (
+          <button onClick={() => setOpen((o) => !o)} className="shrink-0 rounded-full bg-surface-2 px-1.5 text-[10px] font-medium text-faint hover:text-muted" title="Sub-items">
+            {done}/{item.subItems.length}
+          </button>
+        )}
+      </div>
       <div className="px-2 py-1.5"><PeopleCell item={item} users={users} /></div>
       <div className="px-2 py-1.5"><StatusCell item={item} statuses={statuses} /></div>
       <div className="flex items-center px-1 py-1.5">
@@ -259,6 +276,51 @@ function ItemRow({ item, group, statuses, users, isAdmin, onSetDate, onOpenUpdat
           {confirm ? "Delete?" : <Trash2 size={13} />}
         </button>
       )}
+    </div>
+    {open && <SubItems projectId={item.id} subItems={item.subItems} color={group.color} />}
+    </div>
+  );
+}
+
+function SubItems({ projectId, subItems, color }: { projectId: string; subItems: Item["subItems"]; color: string }) {
+  const [, start] = useTransition();
+  const router = useRouter();
+  const refresh = () => router.refresh();
+  const [val, setVal] = useState("");
+  const add = () => {
+    const v = val.trim();
+    if (!v) return;
+    setVal("");
+    start(async () => { await A.addSubItem(projectId, v); refresh(); });
+  };
+  return (
+    <div className="border-b border-hairline bg-surface-2/30 py-1.5 pl-9 pr-3" style={{ boxShadow: `inset 4px 0 0 ${color}` }}>
+      {subItems.map((s) => (
+        <div key={s.id} className="group/sub flex items-center gap-2 py-0.5">
+          <button
+            onClick={() => start(async () => { await A.toggleSubItem(s.id, !s.done); refresh(); })}
+            className={cn("grid h-4 w-4 shrink-0 place-items-center rounded border transition", s.done ? "border-transparent bg-[#2fa36b] text-white" : "border-hairline hover:border-muted")}
+            title={s.done ? "Mark not done" : "Mark done"}
+          >
+            {s.done && <Check size={11} />}
+          </button>
+          <span className={cn("flex-1 text-xs", s.done ? "text-faint line-through" : "text-ink")}>{s.name}</span>
+          <button onClick={() => start(async () => { await A.deleteSubItem(s.id); refresh(); })} className="text-faint opacity-0 transition group-hover/sub:opacity-100 hover:text-[#d24b8f]" title="Remove sub-item">
+            <X size={12} />
+          </button>
+        </div>
+      ))}
+      <div className="mt-1 flex items-center gap-2">
+        <Plus size={13} className="shrink-0 text-faint" />
+        <input
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+          onBlur={add}
+          placeholder="Add a sub-item…"
+          className="flex-1 bg-transparent text-xs text-ink outline-none placeholder:text-faint"
+        />
+      </div>
     </div>
   );
 }
