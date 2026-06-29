@@ -153,9 +153,14 @@ function PeopleCell({ item, users }: { item: Item; users: U[] }) {
   );
 }
 function DateCell({ value, onSet }: { value: string | null; onSet: (v: string | null) => void }) {
-  const d = value ? value.slice(0, 10) : "";
+  // Optimistic local state: a controlled native date input snaps back to the old
+  // prop while the async server action persists, so the picked value must stick
+  // immediately. useEffect reconciles to fresh server data once router.refresh lands.
+  const [d, setD] = useState(value ? value.slice(0, 10) : "");
+  useEffect(() => { setD(value ? value.slice(0, 10) : ""); }, [value]);
   return (
-    <input type="date" value={d} onChange={(e) => onSet(e.target.value || null)}
+    <input type="date" value={d}
+      onChange={(e) => { setD(e.target.value); onSet(e.target.value || null); }}
       className="h-7 w-full rounded-md bg-transparent px-1 text-center text-xs text-muted outline-none hover:bg-surface-2 focus:bg-surface-2" />
   );
 }
