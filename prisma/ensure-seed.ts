@@ -54,6 +54,15 @@ const ITEMS: Item[] = [];
 
 const statusToEnum: Record<string, any> = { New: "REQUEST", Working: "IN_PROGRESS", Review: "REVIEW", Stuck: "REVISIONS", Done: "DELIVERED" };
 
+async function ensureCategoryTags(tx: Prisma.TransactionClient, boardId: string) {
+  let co = 0;
+  for (const c of CATEGORY_TAGS) {
+    const existing = await tx.categoryTag.findFirst({ where: { boardId, label: c.label } });
+    if (!existing) await tx.categoryTag.create({ data: { boardId, label: c.label, color: c.color, order: co } });
+    co++;
+  }
+}
+
 async function ensure(tx: Prisma.TransactionClient) {
   const userId: Record<string, string> = {};
   for (const r of ROSTER) {
@@ -77,12 +86,8 @@ async function ensure(tx: Prisma.TransactionClient) {
     so++;
   }
 
-  let co = 0;
-  for (const c of CATEGORY_TAGS) {
-    const existing = await tx.categoryTag.findFirst({ where: { boardId: board.id, label: c.label } });
-    if (!existing) await tx.categoryTag.create({ data: { boardId: board.id, label: c.label, color: c.color, order: co } });
-    co++;
-  }
+  const activeBoards = await tx.board.findMany({ where: { deletedAt: null }, select: { id: true } });
+  for (const activeBoard of activeBoards) await ensureCategoryTags(tx, activeBoard.id);
 
   const groupId: Record<string, string> = {};
   let go = 0;
