@@ -28,6 +28,15 @@ const STATUSES = [
   { label: "Stuck", color: "#d24b8f" },
   { label: "Done", color: "#2fa36b" },
 ];
+const CATEGORY_TAGS = [
+  { label: "design", color: "#5a4be0" },
+  { label: "pre-engineering", color: "#e8a13a" },
+  { label: "post-engineering", color: "#1fa37a" },
+  { label: "design marketing", color: "#d24b8f" },
+  { label: "concept dev", color: "#7d5be0" },
+  { label: "3d viz", color: "#2bb673" },
+  { label: "mockups", color: "#3aa0e8" },
+];
 const GROUPS = [
   { key: "external", name: "External pitches", color: "#2e7dd1" },
   { key: "internal", name: "Internal", color: "#7a5af0" },
@@ -66,6 +75,13 @@ async function ensure(tx: Prisma.TransactionClient) {
     if (!opt) opt = await tx.statusOption.create({ data: { boardId: board.id, label: s.label, color: s.color, order: so } });
     statusId[s.label] = opt.id;
     so++;
+  }
+
+  let co = 0;
+  for (const c of CATEGORY_TAGS) {
+    const existing = await tx.categoryTag.findFirst({ where: { boardId: board.id, label: c.label } });
+    if (!existing) await tx.categoryTag.create({ data: { boardId: board.id, label: c.label, color: c.color, order: co } });
+    co++;
   }
 
   const groupId: Record<string, string> = {};

@@ -16,6 +16,22 @@ async function log(projectId: string | null, action: string, detail?: string) {
   });
 }
 const refresh = () => revalidatePath("/", "layout");
+const DEFAULT_STATUSES = [
+  { label: "New", color: "#9b9ba3" },
+  { label: "Working", color: "#e0794b" },
+  { label: "Review", color: "#c9852b" },
+  { label: "Stuck", color: "#d24b8f" },
+  { label: "Done", color: "#2fa36b" },
+];
+const DEFAULT_CATEGORY_TAGS = [
+  { label: "design", color: "#5a4be0" },
+  { label: "pre-engineering", color: "#e8a13a" },
+  { label: "post-engineering", color: "#1fa37a" },
+  { label: "design marketing", color: "#d24b8f" },
+  { label: "concept dev", color: "#7d5be0" },
+  { label: "3d viz", color: "#2bb673" },
+  { label: "mockups", color: "#3aa0e8" },
+];
 
 /* ── Boards ─────────────────────────────────────────── */
 export async function createBoard(name: string) {
@@ -23,18 +39,15 @@ export async function createBoard(name: string) {
   const board = await db.board.create({
     data: { name: name.trim() || "New board", order: (last?.order ?? 0) + 1 },
   });
-  // Every board starts with a usable status palette.
-  const defaults = [
-    { label: "New", color: "#9b9ba3" },
-    { label: "Working", color: "#e0794b" },
-    { label: "Review", color: "#c9852b" },
-    { label: "Stuck", color: "#d24b8f" },
-    { label: "Done", color: "#2fa36b" },
-  ];
-  await db.statusOption.createMany({
-    data: defaults.map((d, i) => ({ boardId: board.id, label: d.label, color: d.color, order: i })),
-  });
-  await db.group.create({ data: { boardId: board.id, name: "New group", color: "#5a4be0", order: 0 } });
+  await db.$transaction([
+    db.statusOption.createMany({
+      data: DEFAULT_STATUSES.map((d, i) => ({ boardId: board.id, label: d.label, color: d.color, order: i })),
+    }),
+    db.categoryTag.createMany({
+      data: DEFAULT_CATEGORY_TAGS.map((d, i) => ({ boardId: board.id, label: d.label, color: d.color, order: i })),
+    }),
+    db.group.create({ data: { boardId: board.id, name: "New group", color: "#5a4be0", order: 0 } }),
+  ]);
   refresh();
   return board.id;
 }
@@ -115,6 +128,19 @@ export async function deleteStatus(id: string) {
   refresh();
 }
 
+/* ── Category tags ──────────────────────────────────── */
+export async function createCategoryTag(boardId: string, label: string, color: string) {
+  const last = await db.categoryTag.findFirst({ where: { boardId }, orderBy: { order: "desc" } });
+  await db.categoryTag.create({
+    data: { boardId, label: label.trim() || "New category", color, order: (last?.order ?? 0) + 1 },
+  });
+  refresh();
+}
+export async function updateCategoryTag(id: string, label: string, color: string) {
+  await db.categoryTag.update({ where: { id }, data: { label: label.trim() || "Category", color } });
+  refresh();
+}
+
 /* ── Items (rows) ───────────────────────────────────── */
 export async function createItem(boardId: string, groupId: string, name: string) {
   const user = await currentUser();
@@ -140,6 +166,23 @@ export async function renameItem(id: string, name: string) {
 export async function setItemStatus(id: string, statusOptionId: string | null) {
   await db.project.update({ where: { id }, data: { statusOptionId } });
   await log(id, "changed status");
+  refresh();
+}
+export async function setItemCategoryTag(id: string, categoryTagId: string | null) {
+  if (categoryTagId) {
+    const [item, tag] = await Promise.all([
+      db.project.findUnique({ where: { id }, select: { boardId: true } }),
+      db.categoryTag.findUnique({ where: { id: categoryTagId }, select: { boardId: true } }),
+    ]);
+    if (!item || !tag || item.boardId !== tag.boardId) throw new Error("Category tag does not belong to this board.");
+  }
+  await db.project.update({ where: { id }, data: { categoryTagId } });
+  await log(id, "changed category");
+  refresh();
+}
+export async function updateItemNotes(id: string, notes: string) {
+  await db.project.update({ where: { id }, data: { notes: notes.trim() || null } });
+  await log(id, "updated notes");
   refresh();
 }
 export async function setItemDate(
@@ -235,11 +278,18 @@ export async function toggleSubItem(id: string, done: boolean) {
   await db.subItem.update({ where: { id }, data: { done } });
   refresh();
 }
-export async function renameSubItem(id: string, name: string) {
-  await db.subItem.update({ where: { id }, data: { name: name.trim() || "Untitled" } });
+export async function updateSubItem(
+  id: string,
+  data: { name?: string; startDate?: string | null; dueDate?: string | null }
+) {
+  const update: { name?: string; startDate?: Date | null; dueDate?: Date | null } = {};
+  if (data.name !== undefined) update.name = data.name.trim() || "Untitled";
+  if (data.startDate !== undefined) update.startDate = data.startDate ? new Date(data.startDate) : null;
+  if (data.dueDate !== undefined) update.dueDate = data.dueDate ? new Date(data.dueDate) : null;
+  await db.subItem.update({ where: { id }, data: update });
   refresh();
 }
 export async function deleteSubItem(id: string) {
-  await db.subItem.delete({ where: { id } });
+  await db.subItem.update({ where: { id }, data: { deletedAt: new Date() } });
   refresh();
 }

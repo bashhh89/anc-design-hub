@@ -31,13 +31,21 @@ export default async function BoardPage({ searchParams }: { searchParams: { b?: 
       id: it.id,
       name: it.name,
       statusOptionId: it.statusOptionId,
+      categoryTagId: it.categoryTagId,
+      notes: it.notes,
       dueDate: it.dueDate ? it.dueDate.toISOString() : null,
       startDate: it.startDate ? it.startDate.toISOString() : null,
       endDate: it.endDate ? it.endDate.toISOString() : null,
       assignees: it.assignees.map((a) => ({ id: a.id, name: a.name, color: a.color })),
       commentCount: it._count.comments,
       fileCount: it._count.attachments,
-      subItems: it.subItems.map((s) => ({ id: s.id, name: s.name, done: s.done })),
+      subItems: it.subItems.map((s) => ({
+        id: s.id,
+        name: s.name,
+        done: s.done,
+        startDate: s.startDate ? s.startDate.toISOString() : null,
+        dueDate: s.dueDate ? s.dueDate.toISOString() : null,
+      })),
     })),
   }));
 
@@ -47,6 +55,7 @@ export default async function BoardPage({ searchParams }: { searchParams: { b?: 
       boards={boards}
       groups={groups}
       statuses={board.statuses.map((s) => ({ id: s.id, label: s.label, color: s.color, order: s.order }))}
+      categoryTags={board.categoryTags.map((c) => ({ id: c.id, label: c.label, color: c.color, order: c.order }))}
       users={users.map((u) => ({ id: u.id, name: u.name, color: u.color, role: u.role }))}
       isAdmin={isAdmin(me)}
     />

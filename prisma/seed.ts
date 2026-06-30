@@ -23,6 +23,7 @@ export async function seed() {
   await db.voiceNote.deleteMany();
   await db.brief.deleteMany();
   await db.project.deleteMany();
+  await db.categoryTag.deleteMany();
   await db.user.deleteMany();
 
   const u: Record<string, { id: string; name: string }> = {};
@@ -63,6 +64,21 @@ export async function seed() {
       data: { boardId: board.id, label: s.key, color: s.color, order: so++ },
     });
     statusByLabel[s.key] = opt.id;
+  }
+  const CATEGORY_TAG_DEFS = [
+    { label: "design", color: "#5a4be0" },
+    { label: "pre-engineering", color: "#e8a13a" },
+    { label: "post-engineering", color: "#1fa37a" },
+    { label: "design marketing", color: "#d24b8f" },
+    { label: "concept dev", color: "#7d5be0" },
+    { label: "3d viz", color: "#2bb673" },
+    { label: "mockups", color: "#3aa0e8" },
+  ];
+  let co = 0;
+  for (const c of CATEGORY_TAG_DEFS) {
+    await db.categoryTag.create({
+      data: { boardId: board.id, label: c.label, color: c.color, order: co++ },
+    });
   }
   const enumToStatus: Record<string, string> = {
     REQUEST: "New", BRIEF: "Working", IN_PROGRESS: "Working",

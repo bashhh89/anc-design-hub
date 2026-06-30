@@ -28,12 +28,13 @@ export const PALETTE = [
 
 type U = { id: string; name: string; color: string; role: string };
 type Status = { id: string; label: string; color: string; order: number };
+type CategoryTag = { id: string; label: string; color: string; order: number };
 type Item = {
-  id: string; name: string; statusOptionId: string | null;
+  id: string; name: string; statusOptionId: string | null; categoryTagId: string | null; notes: string | null;
   dueDate: string | null; startDate: string | null; endDate: string | null;
   assignees: { id: string; name: string; color: string }[];
   commentCount: number; fileCount: number;
-  subItems: { id: string; name: string; done: boolean }[];
+  subItems: { id: string; name: string; done: boolean; startDate: string | null; dueDate: string | null }[];
 };
 type Group = { id: string; name: string; color: string; collapsed: boolean; items: Item[] };
 type Board = { id: string; name: string; color: string; icon: string | null };
@@ -42,7 +43,7 @@ type Board = { id: string; name: string; color: string; icon: string | null };
 // <input type="date"> has a hard min width (~130px incl. mm/dd/yyyy + spinners +
 // calendar icon), so these columns must be wide enough or the pickers overlap and
 // the dates render garbled. TIMELINE=300, DATE=148 give each picker room.
-const ROW = "grid grid-cols-[26px_minmax(200px,1.3fr)_100px_132px_300px_148px_60px_60px]";
+const ROW = "grid grid-cols-[26px_minmax(220px,1.25fr)_100px_132px_156px_300px_148px_minmax(340px,420px)_60px_60px]";
 
 /* ── small primitives ───────────────────────────────── */
 function useDismiss(onClose: () => void) {
@@ -128,6 +129,55 @@ function StatusCell({ item, statuses }: { item: Item; statuses: Status[] }) {
     </div>
   );
 }
+function CategoryCell({ item, categoryTags }: { item: Item; categoryTags: CategoryTag[] }) {
+  const [open, setOpen] = useState(false);
+  const [, start] = useTransition();
+  const router = useRouter();
+  const cur = categoryTags.find((c) => c.id === item.categoryTagId);
+  const set = (id: string | null) => start(async () => { await A.setItemCategoryTag(item.id, id); router.refresh(); setOpen(false); });
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex h-7 w-full items-center justify-center truncate rounded-md px-2 text-xs font-semibold text-white transition hover:brightness-105"
+        style={{ background: cur?.color ?? "#e9e7e0", color: cur ? "#fff" : "#9b9ba3" }}
+      >
+        {cur?.label ?? "—"}
+      </button>
+      {open && (
+        <Pop onClose={() => setOpen(false)} className="left-0 w-52">
+          {categoryTags.map((c) => (
+            <button key={c.id} onClick={() => set(c.id)}
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs font-medium text-white hover:opacity-90"
+              style={{ background: c.color }}>
+              <span className="truncate">{c.label}</span>{c.id === item.categoryTagId && <Check size={12} className="ml-auto shrink-0" />}
+            </button>
+          ))}
+          <button onClick={() => set(null)} className="mt-1 w-full rounded-lg px-2 py-1 text-left text-xs text-muted hover:bg-surface-2">Clear</button>
+        </Pop>
+      )}
+    </div>
+  );
+}
+function NotesCell({ item }: { item: Item }) {
+  const [v, setV] = useState(item.notes ?? "");
+  const [, start] = useTransition();
+  const router = useRouter();
+  useEffect(() => setV(item.notes ?? ""), [item.notes]);
+  const save = () => {
+    if (v !== (item.notes ?? "")) start(async () => { await A.updateItemNotes(item.id, v); router.refresh(); });
+  };
+  return (
+    <textarea
+      value={v}
+      onChange={(e) => setV(e.target.value)}
+      onBlur={save}
+      rows={1}
+      placeholder="Add notes..."
+      className="min-h-7 w-full resize-none rounded-md bg-transparent px-2 py-1 text-xs leading-5 text-ink outline-none placeholder:text-faint hover:bg-surface-2 focus:min-h-20 focus:bg-surface-2"
+    />
+  );
+}
 function PeopleCell({ item, users }: { item: Item; users: U[] }) {
   const [open, setOpen] = useState(false);
   const [, start] = useTransition();
@@ -201,6 +251,32 @@ function StatusManager({ boardId, statuses, onClose }: { boardId: string; status
     </div>
   );
 }
+function CategoryManager({ boardId, categoryTags, onClose }: { boardId: string; categoryTags: CategoryTag[]; onClose: () => void }) {
+  const [, start] = useTransition();
+  const router = useRouter();
+  const refresh = () => router.refresh();
+  return (
+    <div className="fixed inset-0 z-[60] grid place-items-center bg-ink/30 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-2xl border border-hairline bg-surface p-5 shadow-pop">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-display text-base font-semibold tracking-tight">Category labels</h3>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-faint hover:bg-surface-2"><X size={18} /></button>
+        </div>
+        <div className="space-y-2">
+          {categoryTags.map((c) => (
+            <ColorRow key={c.id} label={c.label} color={c.color}
+              onLabel={(l) => start(async () => { await A.updateCategoryTag(c.id, l, c.color); refresh(); })}
+              onColor={(color) => start(async () => { await A.updateCategoryTag(c.id, c.label, color); refresh(); })} />
+          ))}
+        </div>
+        <button onClick={() => start(async () => { await A.createCategoryTag(boardId, "New category", "#9b9ba3"); refresh(); })}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-hairline px-3 py-1.5 text-xs font-medium text-muted hover:border-accent hover:text-accent">
+          <Plus size={14} /> Add category
+        </button>
+      </div>
+    </div>
+  );
+}
 function ColorRow({ label, color, onLabel, onColor }: { label: string; color: string; onLabel: (l: string) => void; onColor: (c: string) => void }) {
   const [v, setV] = useState(label);
   const [pick, setPick] = useState(false);
@@ -218,8 +294,8 @@ function ColorRow({ label, color, onLabel, onColor }: { label: string; color: st
 }
 
 /* ── sortable item row ──────────────────────────────── */
-function ItemRow({ item, group, statuses, users, isAdmin, onSetDate, onOpenUpdates, onDelete }: {
-  item: Item; group: Group; statuses: Status[]; users: U[]; isAdmin: boolean;
+function ItemRow({ item, group, statuses, categoryTags, users, isAdmin, onSetDate, onOpenUpdates, onDelete }: {
+  item: Item; group: Group; statuses: Status[]; categoryTags: CategoryTag[]; users: U[]; isAdmin: boolean;
   onSetDate: (item: Item, f: "dueDate" | "startDate" | "endDate", v: string | null) => void;
   onOpenUpdates: (id: string) => void;
   onDelete: (id: string) => void;
@@ -256,12 +332,14 @@ function ItemRow({ item, group, statuses, users, isAdmin, onSetDate, onOpenUpdat
       </div>
       <div className="px-2 py-1.5"><PeopleCell item={item} users={users} /></div>
       <div className="px-2 py-1.5"><StatusCell item={item} statuses={statuses} /></div>
+      <div className="px-2 py-1.5"><CategoryCell item={item} categoryTags={categoryTags} /></div>
       <div className="flex items-center px-1 py-1.5">
         <DateCell value={item.startDate} onSet={(v) => onSetDate(item, "startDate", v)} />
         <span className="text-faint">–</span>
         <DateCell value={item.endDate} onSet={(v) => onSetDate(item, "endDate", v)} />
       </div>
       <div className="px-2 py-1.5"><DateCell value={item.dueDate} onSet={(v) => onSetDate(item, "dueDate", v)} /></div>
+      <div className="px-2 py-1.5"><NotesCell item={item} /></div>
       <Link href={`/projects/${item.id}`} className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-muted hover:text-accent"><Paperclip size={13} />{item.fileCount}</Link>
       <button onClick={() => onOpenUpdates(item.id)} className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-muted hover:text-accent" title="Open updates"><MessageSquare size={13} />{item.commentCount}</button>
       {isAdmin && (
@@ -282,6 +360,36 @@ function ItemRow({ item, group, statuses, users, isAdmin, onSetDate, onOpenUpdat
   );
 }
 
+function SubItemName({ subItem }: { subItem: Item["subItems"][number] }) {
+  const [v, setV] = useState(subItem.name);
+  const [, start] = useTransition();
+  const router = useRouter();
+  useEffect(() => setV(subItem.name), [subItem.name]);
+  const save = () => {
+    if (v !== subItem.name) start(async () => { await A.updateSubItem(subItem.id, { name: v }); router.refresh(); });
+  };
+  return (
+    <input
+      value={v}
+      onChange={(e) => setV(e.target.value)}
+      onBlur={save}
+      onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+      className={cn("min-w-0 flex-1 rounded-md bg-transparent px-1 py-0.5 text-xs outline-none hover:bg-surface focus:bg-surface", subItem.done ? "text-faint line-through" : "text-ink")}
+    />
+  );
+}
+function SubItemDate({ value, onSet }: { value: string | null; onSet: (v: string | null) => void }) {
+  const [d, setD] = useState(value ? value.slice(0, 10) : "");
+  useEffect(() => { setD(value ? value.slice(0, 10) : ""); }, [value]);
+  return (
+    <input
+      type="date"
+      value={d}
+      onChange={(e) => { setD(e.target.value); onSet(e.target.value || null); }}
+      className="h-7 w-[132px] rounded-md bg-transparent px-1 text-xs text-muted outline-none hover:bg-surface focus:bg-surface"
+    />
+  );
+}
 function SubItems({ projectId, subItems, color }: { projectId: string; subItems: Item["subItems"]; color: string }) {
   const [, start] = useTransition();
   const router = useRouter();
@@ -304,7 +412,10 @@ function SubItems({ projectId, subItems, color }: { projectId: string; subItems:
           >
             {s.done && <Check size={11} />}
           </button>
-          <span className={cn("flex-1 text-xs", s.done ? "text-faint line-through" : "text-ink")}>{s.name}</span>
+          <SubItemName subItem={s} />
+          <SubItemDate value={s.startDate} onSet={(v) => start(async () => { await A.updateSubItem(s.id, { startDate: v }); refresh(); })} />
+          <span className="text-faint">–</span>
+          <SubItemDate value={s.dueDate} onSet={(v) => start(async () => { await A.updateSubItem(s.id, { dueDate: v }); refresh(); })} />
           <button onClick={() => start(async () => { await A.deleteSubItem(s.id); refresh(); })} className="text-faint opacity-0 transition group-hover/sub:opacity-100 hover:text-[#d24b8f]" title="Remove sub-item">
             <X size={12} />
           </button>
@@ -326,8 +437,8 @@ function SubItems({ projectId, subItems, color }: { projectId: string; subItems:
 }
 
 /* ── sortable group ─────────────────────────────────── */
-function GroupSection({ group, board, statuses, users, isAdmin, onOpenUpdates, onDelete }: {
-  group: Group; board: Board; statuses: Status[]; users: U[]; isAdmin: boolean;
+function GroupSection({ group, board, statuses, categoryTags, users, isAdmin, onOpenUpdates, onDelete }: {
+  group: Group; board: Board; statuses: Status[]; categoryTags: CategoryTag[]; users: U[]; isAdmin: boolean;
   onOpenUpdates: (id: string) => void; onDelete: (id: string) => void;
 }) {
   const [, start] = useTransition();
@@ -379,20 +490,22 @@ function GroupSection({ group, board, statuses, users, isAdmin, onOpenUpdates, o
 
       {!collapsed && (
         <div className="overflow-x-auto rounded-xl border border-hairline bg-surface shadow-card">
-         <div className="min-w-[1040px]">
+         <div className="min-w-[1560px]">
           <div className={cn(ROW, "items-center border-b border-hairline bg-surface-2 text-[11px] font-semibold uppercase tracking-wide text-faint")} style={{ boxShadow: `inset 4px 0 0 ${group.color}` }}>
             <div />
             <div className="px-1 py-2">Item</div>
             <div className="px-2 py-2 text-center">People</div>
             <div className="px-2 py-2 text-center">Status</div>
+            <div className="px-2 py-2 text-center">Category</div>
             <div className="px-2 py-2 text-center">Timeline</div>
             <div className="px-2 py-2 text-center">Date</div>
+            <div className="px-2 py-2 text-center">Sub task & Notes</div>
             <div className="px-2 py-2 text-center">Files</div>
             <div className="px-2 py-2 text-center">Updates</div>
           </div>
           <SortableContext items={group.items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
             {group.items.map((item) => (
-              <ItemRow key={item.id} item={item} group={group} statuses={statuses} users={users} isAdmin={isAdmin} onSetDate={setDate} onOpenUpdates={onOpenUpdates} onDelete={onDelete} />
+              <ItemRow key={item.id} item={item} group={group} statuses={statuses} categoryTags={categoryTags} users={users} isAdmin={isAdmin} onSetDate={setDate} onOpenUpdates={onOpenUpdates} onDelete={onDelete} />
             ))}
           </SortableContext>
           <div className="px-3 py-1.5" style={{ boxShadow: `inset 4px 0 0 ${group.color}` }}>
@@ -413,12 +526,12 @@ function GroupSection({ group, board, statuses, users, isAdmin, onOpenUpdates, o
 }
 
 /* ── main ───────────────────────────────────────────── */
-export function MondayBoard({ board, boards, groups, statuses, users, isAdmin }: {
-  board: Board; boards: Board[]; groups: Group[]; statuses: Status[]; users: U[]; isAdmin: boolean;
+export function MondayBoard({ board, boards, groups, statuses, categoryTags, users, isAdmin }: {
+  board: Board; boards: Board[]; groups: Group[]; statuses: Status[]; categoryTags: CategoryTag[]; users: U[]; isAdmin: boolean;
 }) {
   const [, start] = useTransition();
   const router = useRouter();
-  const [mgr, setMgr] = useState(false);
+  const [mgr, setMgr] = useState<"status" | "category" | null>(null);
   const [bName, setBName] = useState(board.name);
   const [addingBoard, setAddingBoard] = useState(false);
   const [newBoard, setNewBoard] = useState("");
@@ -518,15 +631,18 @@ export function MondayBoard({ board, boards, groups, statuses, users, isAdmin }:
         <input value={bName} onChange={(e) => setBName(e.target.value)} onBlur={() => bName !== board.name && start(async () => { await A.renameBoard(board.id, bName); router.refresh(); })}
           onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
           className="bg-transparent font-display text-2xl font-semibold tracking-tight outline-none focus:rounded-lg focus:bg-surface-2 focus:px-2" />
-        <button onClick={() => setMgr(true)} className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-hairline px-3 py-1.5 text-xs font-medium text-muted hover:border-accent hover:text-accent">
+        <button onClick={() => setMgr("status")} className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-hairline px-3 py-1.5 text-xs font-medium text-muted hover:border-accent hover:text-accent">
           <Settings2 size={14} /> Statuses
+        </button>
+        <button onClick={() => setMgr("category")} className="inline-flex items-center gap-1.5 rounded-lg border border-hairline px-3 py-1.5 text-xs font-medium text-muted hover:border-accent hover:text-accent">
+          <Settings2 size={14} /> Categories
         </button>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={cols.map((g) => "g:" + g.id)} strategy={verticalListSortingStrategy}>
           {cols.map((g) => (
-            <GroupSection key={g.id} group={g} board={board} statuses={statuses} users={users} isAdmin={isAdmin} onOpenUpdates={setOpenItem} onDelete={deleteItem} />
+            <GroupSection key={g.id} group={g} board={board} statuses={statuses} categoryTags={categoryTags} users={users} isAdmin={isAdmin} onOpenUpdates={setOpenItem} onDelete={deleteItem} />
           ))}
         </SortableContext>
       </DndContext>
@@ -536,7 +652,8 @@ export function MondayBoard({ board, boards, groups, statuses, users, isAdmin }:
         <Plus size={16} /> Add group
       </button>
 
-      {mgr && <StatusManager boardId={board.id} statuses={statuses} onClose={() => setMgr(false)} />}
+      {mgr === "status" && <StatusManager boardId={board.id} statuses={statuses} onClose={() => setMgr(null)} />}
+      {mgr === "category" && <CategoryManager boardId={board.id} categoryTags={categoryTags} onClose={() => setMgr(null)} />}
       {openItem && <UpdatesPanel itemId={openItem} onClose={() => setOpenItem(null)} />}
     </div>
   );
