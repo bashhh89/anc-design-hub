@@ -73,6 +73,7 @@ export async function seed() {
     { label: "concept dev", color: "#7d5be0" },
     { label: "3d viz", color: "#2bb673" },
     { label: "mockups", color: "#3aa0e8" },
+    { label: "business dev", color: "#e0533a" },
   ];
   let co = 0;
   for (const c of CATEGORY_TAG_DEFS) {

@@ -36,6 +36,7 @@ const CATEGORY_TAGS = [
   { label: "concept dev", color: "#7d5be0" },
   { label: "3d viz", color: "#2bb673" },
   { label: "mockups", color: "#3aa0e8" },
+  { label: "business dev", color: "#e0533a" },
 ];
 const GROUPS = [
   { key: "external", name: "External pitches", color: "#2e7dd1" },
